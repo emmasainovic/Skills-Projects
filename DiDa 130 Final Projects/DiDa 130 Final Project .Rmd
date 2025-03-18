@@ -1,0 +1,113 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+```{r}
+setwd("/Users/emmasainovic")
+finance_data <- read.csv("/Users/emmasainovic/Downloads/dida 130 (winter 2025)/final/finance.csv")
+finance <- finance_data[complete.cases(finance_data),]
+
+
+library(dplyr)
+library(car)
+library(ggplot2)
+```
+
+Research Question : In New York State, how do ‘Details.Health.Health Total Expenditure’, ‘Details.Education.Education Total’, ‘Details.Natural Resources.Parks.Parks Total Expenditure’ and ‘Details.Correction.Correction Total’ impact the ‘Totals.Expenditure’ between 1992 and 2019? 
+```{r}
+ny <- finance %>% filter(State == 'NEW YORK')
+ny
+
+# regression model 
+ny_reg <- lm(Totals.Expenditure
+ ~ Details.Health.Health.Total.Expenditure
+ + Details.Education.Education.Total
+ + Details.Natural.Resources.Parks.Parks.Total.Expenditure
+ + Details.Correction.Correction.Total,
+ data = ny
+)
+ny_sum <- summary(ny_reg)
+ny_sum
+
+# checking assumptions of regression model
+
+# normality of residuals
+shapiro.test(residuals(ny_reg))
+
+# homogenous
+ncvTest(ny_reg)
+
+# colinearity 
+vif(ny_reg)
+
+# linearity
+plot(ny_reg)
+residualPlots(ny_reg)
+
+# statistics summary table
+mean <- ny%>%summarize(across(c(Totals.Expenditure,Details.Health.Health.Total.Expenditure,Details.Education.Education.Total,Details.Natural.Resources.Parks.Parks.Total.Expenditure,Details.Correction.Correction.Total), ~mean(., na.rm=T)))
+
+min <- ny%>% summarise(across(c(Totals.Expenditure,Details.Health.Health.Total.Expenditure,Details.Education.Education.Total,Details.Natural.Resources.Parks.Parks.Total.Expenditure,Details.Correction.Correction.Total), ~min(., na.rm=T)))
+
+max <- ny%>% summarise(across(c(Totals.Expenditure,Details.Health.Health.Total.Expenditure,Details.Education.Education.Total,Details.Natural.Resources.Parks.Parks.Total.Expenditure,Details.Correction.Correction.Total), ~max(., na.rm=T)))
+
+sd <- ny%>% summarise(across(c(Totals.Expenditure,Details.Health.Health.Total.Expenditure,Details.Education.Education.Total,Details.Natural.Resources.Parks.Parks.Total.Expenditure,Details.Correction.Correction.Total), ~sd(., na.rm=T)))
+
+iqr <- ny%>% summarise(across(c(Totals.Expenditure,Details.Health.Health.Total.Expenditure,Details.Education.Education.Total,Details.Natural.Resources.Parks.Parks.Total.Expenditure,Details.Correction.Correction.Total), ~IQR(., na.rm=T)))
+
+sum_table <- rbind(mean, min, max, sd, iqr)
+rownames(sum_table) <- c('mean',' minimum', 'maximum', 'standard deviation', 'IQR')
+sum_table
+
+# data frame for bar graph of mean values of variables 
+mean_health <- mean(ny$Details.Health.Health.Total.Expenditure)
+mean_edu <- mean(ny$Details.Education.Education.Total)
+mean_nat <- mean(ny$Details.Natural.Resources.Parks.Parks.Total.Expenditure)
+mean_cor <- mean(ny$Details.Correction.Correction.Total)
+
+mean_vals <- c(mean_health, mean_edu, mean_nat, mean_cor)
+mean_labs <- c('health', 'education','recreational','correctional')
+
+means_data <- data.frame(mean_labs, means_val)
+
+# bar graph 
+ggplot(means_data, aes(y = mean_vals, x = mean_labs, fill=mean_labs))+
+  geom_bar(stat = "identity") +
+  labs(x = "Category of Taxes dollars spent", y = "Amount Spent",
+       title = "Tax dollars spent in NY state between 1992 and 2019 by category")+
+  theme(legend.position = "none")
+
+# histogram 1
+hist_ny1 <-ggplot(ny, aes(Details.Education.Education.Total))+
+  geom_histogram(fill = "pink", color = "black")+
+  labs(x = "Spending on Education", y = "Count of Years")+
+  theme_minimal()
+hist_ny1
+
+# histogram 2
+hist_ny2 <-ggplot(ny, aes(Totals.Expenditure))+
+  geom_histogram(fill = "lightblue", color = "black")+
+  labs(x = "Spending on Nature", y = "Count of Years")+
+  theme_minimal()
+hist_ny2
+
+# line graph for total spent
+total_spent <- ggplot(data = ny, aes(y = Totals.Expenditure, x = Year))+
+  labs(x = 'Year' , y = "$ Spent", title = "New York State Total Expenditure, 1992-2019 ")+
+geom_line()
+total_spent
+
+# line graph for money spent for education
+edu_spent <- ggplot(data = ny, aes(y = Details.Education.Education.Total, x = Year))+
+  labs(x = 'Year' , y = "$ Spent", title = "New York State Educational Expenditure, 1992-2019 ")+
+  geom_line()
+edu_spent
+
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+
